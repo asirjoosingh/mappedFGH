@@ -1,0 +1,4 @@
+Mapped Fourier Grid Hamiltonian code for one dimension
+
+Requires LAPACK for matrix diagonalization and up to BLAS level 2 routines
+
