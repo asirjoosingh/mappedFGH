@@ -1,5 +1,6 @@
 
-include Makefile.gnu
+#include Makefile.gnu
+#include Makefile.intel
 
 EXE = mappedfgh.exe
 
