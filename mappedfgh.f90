@@ -1,21 +1,15 @@
 program gridnacme
 
 ! Inputs:
-!    potential.in - (see schroedinger.f90) adiabatic electronic ground state potential in au on scaled grid
+!    potential.in - adiabatic electronic ground state potential in eV on scaled grid in bohr
 !
 ! Outputs:
-!    DA-energies.out - double adiabatic vibronic energies (assumes no nonadiabatic effects)
-!    hamiltonian_nog.dat - vibronic Hamiltonian in double adiabatic product basis neglecting second-order terms
-!    hamiltonian.dat - vibronic Hamiltonian in double adiabatic product basis
-!    protwf1.out - four lowest-energy proton vibrational states moving in adiabatic electronic potential 1
-!    protwf2.out - four lowest-energy proton vibrational states moving in adiabatic electronic potential 2
-!    energies.out - 'exact' vibronic state energies in kcal/mol and cm^-1
-!    wf1.out - expansion coefficients for ground vibronic state
-!    wf2.out - expansion coefficients for first excited vibronic state
+!    energies.out - state energies in eV
+!    wf????.out   - min(ngrid,2000) number of wavefunctions printed out on grid (bohr)
 !
 ! Features:
-!    Assumes first order nonadiabatic coupling d_ik for i\in{1,2} and k>2 are negligible
-!    Normalizes and phases proton vibrational wavefunctions
+!    Normalizes wavefunctions
+!    Requires LAPACK for digonalization and up to BLAS level 2
 
 use cubicspline
 implicit none
@@ -41,17 +35,17 @@ real*8              :: dnrm2
 character*4         :: istring
 real*8, parameter   :: zero=0.0d+00, one=1.0d+00, two=2.0d+00
 real*8, parameter   :: bohr2ang=0.529177249d+00, ang2bohr=one/bohr2ang
-real*8, parameter   :: au2kcal=627.5095d+00, kcal2au=one/au2kcal
 real*8, parameter   :: au2ev=27.21138505d+00, ev2au=one/au2ev
+real*8, parameter   :: au2kcal=627.5095d+00, kcal2au=one/au2kcal
 real*8, parameter   :: au2cm=219474.6, cm2au=one/au2cm
-real*8, parameter   :: tolerance=1.0d-05,normtol=1.0d-10
+real*8, parameter   :: normtol=1.0d-10
 real*8, allocatable :: coords(:), scoords(:), sderiv(:,:)
 real*8, allocatable :: pot(:), en(:)
 real*8, allocatable :: wf(:,:)
 
 ! Read in electronic potential in au
 open(unit=301,file='potential.in')
-read(301,*) totwidth                               ! Size of integration interval[ang]
+read(301,*) totwidth                               ! Size of integration interval[bohr]
 read(301,*) mass                                   ! Mass of quantum particle[emu]
 read(301,*) ngrid                                  ! Number of grid points
 if (mod(ngrid,2) /= 0) then
@@ -63,11 +57,11 @@ coords=zero
 pot=zero
 do k=1,ngrid
   read(301,*) coords(k), pot(k)
-  coords(k)=coords(k)*ang2bohr
-  pot(k)=pot(k)
+  coords(k)=coords(k)
+  pot(k)=pot(k)*ev2au    ! schroedinger.f90 requires au
 end do
 close(301)
-width=totwidth/dble(ngrid-1)*ang2bohr                    ! grid spacing[bohr]
+width=totwidth/dble(ngrid-1)                    ! grid spacing[bohr]
 
 ! Define the scaled coords to run uniformly along a grid [-1,1]au
 allocate (scoords(ngrid))
@@ -92,17 +86,15 @@ end do
 call cleanspline
 
 ! Calculate wavefunctions
-allocate (en(ngrid),wf(ngrid,ngrid))  ! Energies(quantum_num)[kcal/mol], Wavefunctions(grid,quantum_num)
+allocate (en(ngrid),wf(ngrid,ngrid))  ! Energies(quantum_num)[au], Wavefunctions(grid,quantum_num)
 
 call mappedschroed(ngrid,stotwidth,mass,pot,sderiv,en,wf)
 
 ! Write energies
 open(unit=303,file="energies.out")
-!write(303,'(A12,2(A20))') "State", "En(kcal/mol)", "En(cm^(-1))"
 write(303,'(A1,1X,A10,A20)') "#", "State", "En(eV)"
 do k=1,ngrid
-!  write(303,'(I12,2(G20.12))') k, en(k), en(k)*kcal2au*au2cm
-  write(303,'(I12,G20.12)') k, en(k)*kcal2au*au2ev
+  write(303,'(I12,G20.12)') k, en(k)*au2ev
 end do
 close(303)
 
@@ -123,9 +115,9 @@ end do
 do i=1,nwf
   write(istring,'(I4.4)') i
   open(unit=303,file='wf'//istring//'.out')
-  write(303,'(A1,2(A20))') "#","Coords (Ang)","Wavefunction"
+  write(303,'(A1,2(A20))') "#","Coords (bohr)","Wavefunction"
   do k=1,ngrid
-    write(303,'(1X,2(G20.12))') coords(k)*bohr2ang,wf(k,i)
+    write(303,'(1X,2(G20.12))') coords(k),wf(k,i)
   end do
   close(303)
 end do

@@ -18,7 +18,7 @@ subroutine mappedschroed(npnts,xint,mass,potential,coordderiv,energy,wavefunctio
 !
 !  Output parameters:
 !
-!     energy(1:npnts) - energy levels (kcal/mol)
+!     energy(1:npnts) - energy levels (au)
 !     wavefunction(i=1:npnts,j=1:nwf) - wavefunctions;
 !                                       i - grid point;
 !                                       j - quantum number.
@@ -40,10 +40,6 @@ real*8,  intent(out), dimension(npnts)       :: energy
 real*8,  intent(out), dimension(npnts,npnts) :: wavefunction
 
 ! parameters
-real*8, parameter :: au2kcal  = 627.5095d0
-real*8, parameter :: kcal2au  = 1.d0/au2kcal
-real*8, parameter :: bohr2ang = 0.529177249d0
-real*8, parameter :: ang2bohr = 1.d0/bohr2ang
 real*8, parameter :: pi       = 3.14159265358979d0
 real*8, parameter :: hbar     = 1.d0
 real*8, parameter :: tol      = 1.d-6
@@ -207,8 +203,6 @@ end do
 ! return
 !end if
 !deallocate(work)
-
-energy = energy*au2kcal
 
 return
 end subroutine mappedschroed
